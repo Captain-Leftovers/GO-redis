@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -33,7 +35,7 @@ func main() {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
-			continue
+			break
 		}
 
 		go handleConnection(conn)
@@ -50,6 +52,9 @@ func handleConnection(conn net.Conn) {
 		buff := make([]byte, 1024)
 
 		n, err := conn.Read(buff)
+		if errors.Is(err, io.EOF){
+			break
+		}
 		if err != nil {
 			print(err.Error())
 			break
