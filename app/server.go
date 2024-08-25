@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/codecrafters-io/redis-starter-go/resp"
 )
 
 
@@ -64,10 +66,16 @@ func handleConnection(conn net.Conn) {
 			break
 		}
 
-		data := string(buff[:n])
+		data := buff[:n] //buff byte slice
 
 		fmt.Println("Received data: ", data)
-		_, err = conn.Write([]byte("+PONG\r\n"))
+		answer, err := resp.ExecuteRespData(data)
+		if err != nil {
+			fmt.Println("Error executing command: ", err.Error())
+			break
+		}
+		
+		_, err = conn.Write(answer)
 		if err != nil {
 			fmt.Println("Error writing to connection:", err.Error())
 			break
