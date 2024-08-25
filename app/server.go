@@ -18,7 +18,7 @@ func main() {
 	// PORT := 6379
 	//TODO use netcat to send commands and develope the redis protocol parser
 
-	l, err := net.Listen("tcp", "0.0.0.0:3000")
+	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
