@@ -198,21 +198,6 @@ func parseArray(data []byte) (Array, []byte, error) {
 
 		res, trailingData, err := ParseByteDataToResp(respElement)
 
-		// TODO : see whats wrong with result
-		switch res.(type) {
-		case Array:
-			fmt.Println("res is of type Array")
-		case BulkString:
-			fmt.Println("res is of type BulkString")
-		case Integer:
-			fmt.Println("res is of type Integer")
-		case SimpleError:
-			fmt.Println("res is of type SimpleError")
-		case SimpleString:
-			fmt.Println("res is of type SimpleString")
-		default:
-			fmt.Println("res is of unknown type")
-		}
 
 		if err != nil {
 			return Array{Elements: nil}, trailingData, fmt.Errorf("%v", err)
@@ -223,9 +208,6 @@ func parseArray(data []byte) (Array, []byte, error) {
 		currIndex += (len(respElement) - len(trailingData))
 
 	}
-
-	fmt.Println("result is : ", *result.Elements)
-	fmt.Println("trailing data is: ", trailingData)
 
 	return result, trailingData, nil
 }

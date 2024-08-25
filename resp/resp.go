@@ -1,13 +1,26 @@
 package resp
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-var commands = map[string]func(BulkString) ([]byte, error){
+var commands = map[string]func(...BulkString) ([]byte, error){
 	"ECHO": echo,
+	"PING": ping,
 }
 
-func echo(s BulkString) ([]byte, error) {
-	return s.serialize()
+func ping(args ...BulkString) ([]byte, error) {
+
+	return []byte("+PONG\r\n"), nil
+}
+
+func echo(args ...BulkString) ([]byte, error) {
+	if len(args) < 1 {
+		return []byte(""), fmt.Errorf("missing argument for ECHO")
+	}
+
+	return args[0].serialize()
 }
 
 // parses the RESP data checks for commands and returns serialized response string and error if any
@@ -23,7 +36,7 @@ func ExecuteRespData(data []byte) ([]byte, error) {
 	}
 
 	// TODO : see if we can use more than 2 elements
-	if len(*val.Elements) != 2 {
+	if len(*val.Elements) < 1 {
 		return []byte(""), fmt.Errorf("invalid command")
 	}
 
@@ -33,12 +46,16 @@ func ExecuteRespData(data []byte) ([]byte, error) {
 		return []byte(""), fmt.Errorf("invalid command")
 	}
 
-	cmdStr := *cmd.Value
+	cmdStr := strings.ToUpper(*cmd.Value)
 
 	f, ok := commands[cmdStr]
 
 	if !ok {
 		return []byte(""), fmt.Errorf("invalid command")
+	}
+
+	if len(*val.Elements) < 2 {
+		return f()
 	}
 
 	arg, ok := (*val.Elements)[1].(BulkString)
