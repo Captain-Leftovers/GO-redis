@@ -5,22 +5,42 @@ import (
 	"strings"
 )
 
+var store = make(map[string]string)
+
 var commands = map[string]func(...BulkString) ([]byte, error){
-	"ECHO": echo,
-	"PING": ping,
+	"ECHO": handleEcho,
+	"PING": handlePing,
+	"SET":  handleSet,
+	"GET":  handleGet,
 }
 
-func ping(args ...BulkString) ([]byte, error) {
+func handleSet(args ...BulkString) ([]byte, error) {
+	key := *args[1].Value
+	value := *args[2].Value
 
+	store[key] = value
+	return []byte("+OK\r\n"), nil
+}
+
+func handleGet(args ...BulkString) ([]byte, error) {
+	key := *args[1].Value
+
+	if value, exists := store[key]; exists {
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)), nil
+	}
+	return []byte("$-1\r\n"), nil
+}
+
+func handlePing(args ...BulkString) ([]byte, error) {
 	return []byte("+PONG\r\n"), nil
 }
 
-func echo(args ...BulkString) ([]byte, error) {
-	if len(args) < 1 {
+func handleEcho(args ...BulkString) ([]byte, error) {
+	if len(args) < 2 {
 		return []byte(""), fmt.Errorf("missing argument for ECHO")
 	}
 
-	return args[0].serialize()
+	return args[1].serialize()
 }
 
 // parses the RESP data checks for commands and returns serialized response string and error if any
@@ -48,24 +68,36 @@ func ExecuteRespData(data []byte) ([]byte, error) {
 
 	cmdStr := strings.ToUpper(*cmd.Value)
 
-	f, ok := commands[cmdStr]
+	commandFunc, ok := commands[cmdStr]
 
 	if !ok {
 		return []byte(""), fmt.Errorf("invalid command")
 	}
 
 	if len(*val.Elements) < 2 {
-		return f()
+		return commandFunc()
 	}
 
-	arg, ok := (*val.Elements)[1].(BulkString)
+
+	args := make([]BulkString, len(*val.Elements))
+
+	for i, elem := range *val.Elements {
+		arg, ok := elem.(BulkString)
+
+		if !ok {
+			return []byte(""), fmt.Errorf("invalid command")
+		}
+
+		args[i] = arg
+	}
+
+
+	// arg, ok := (*val.Elements)[1].(BulkString)
 
 	if !ok {
 		return []byte(""), fmt.Errorf("invalid command")
 	}
 
-	return f(arg)
-
-	// TODO : loop trough commands like ECHO case insensitive and maybe create a map of commands
+	return commandFunc(args...)
 
 }
