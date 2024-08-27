@@ -9,10 +9,18 @@ import (
 	"os/signal"
 	"syscall"
 
+
 	"github.com/codecrafters-io/redis-starter-go/resp"
 )
 
+
+
+
+
 func main() {
+
+	go resp.StartCleanupRoutine()
+
 	// PORT := 6379
 	// TODO use netcat to send commands and develop the Redis protocol parser
 
