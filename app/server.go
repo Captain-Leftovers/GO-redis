@@ -12,11 +12,9 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/resp"
 )
 
-
 func main() {
-	
 	// PORT := 6379
-	//TODO use netcat to send commands and develope the redis protocol parser
+	// TODO use netcat to send commands and develop the Redis protocol parser
 
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
@@ -30,35 +28,43 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	// Flag to indicate whether the server is running
+	running := true
+
 	go func() {
 		<-sigChan
 		fmt.Println("Shutting down server...")
 		l.Close()
-		os.Exit(0)
+		running = false
 	}()
 
-	for {
+	for running {
+
 		conn, err := l.Accept()
+
 		if err != nil {
+			// Check if the error is due to the listener being closed
+			if opErr, ok := err.(*net.OpError); ok && !opErr.Temporary() {
+				fmt.Println("Listener closed, stopping server...")
+				break
+			}
+
 			fmt.Println("Error accepting connection: ", err.Error())
 			break
 		}
 
 		go handleConnection(conn)
 	}
-
 }
 
 func handleConnection(conn net.Conn) {
-
 	defer conn.Close()
 
 	for {
-
 		buff := make([]byte, 1024)
 
 		n, err := conn.Read(buff)
-		if errors.Is(err, io.EOF){
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -66,7 +72,7 @@ func handleConnection(conn net.Conn) {
 			break
 		}
 
-		data := buff[:n] //buff byte slice
+		data := buff[:n] // buff byte slice
 
 		fmt.Println("Received data: ", data)
 		answer, err := resp.ExecuteRespData(data)
@@ -74,12 +80,11 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error executing command: ", err.Error())
 			break
 		}
-		
+
 		_, err = conn.Write(answer)
 		if err != nil {
 			fmt.Println("Error writing to connection:", err.Error())
 			break
 		}
-
 	}
 }
